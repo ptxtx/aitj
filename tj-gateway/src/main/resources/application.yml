@@ -68,8 +68,12 @@ spring:
           uri: lb://promotion-service
           predicates:
             - Path=/prs/**
+        - id: ais
+          uri: lb://aigc-service
+          predicates:
+            - Path=/ais/**
       default-filters:
-        - StripPrefix=1
+        - StripPrefix=1  #网关转发请求时 去掉1级目录
       globalcors: # 全局的跨域处理
         add-to-simple-url-handler-mapping: true # 解决options请求被拦截问题
         corsConfigurations:
