@@ -14,6 +14,8 @@ import lombok.Builder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 @Builder
@@ -35,5 +37,10 @@ public class ChatSessionServiceImpl extends ServiceImpl<ChatSessionMapper, ChatS
 
         return sessionVO;
 
+    }
+
+    @Override
+    public List<SessionVO.Example> hotExamples(Integer num) {
+        return RandomUtil.randomEleList(sessionProperties.getExamples(), 3);
     }
 }
