@@ -25,14 +25,5 @@ public class ChatController {
         return chatService.chat(chatDTO.getQuestion(),chatDTO.getSessionId());
 
     }
-    @GetMapping("/session/history")
-    public List<?> history() {
-        // 查询历史会话
-        return null;
-    }
-    @GetMapping("/chat/templates")
-    public List<?> templates() {
-        // 返回聊天模板
-        return null;
-    }
+
 }
