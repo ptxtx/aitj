@@ -6,7 +6,7 @@ import com.tianji.aigc.vo.SessionVO;
 
 import java.util.List;
 
-public interface ChatSessionService extends IService<ChatSession> {
+public interface ChatSessionService extends IService<ChatSession> {//和数据库有交互才做这个继承
 
     /**
      * 创建会话session
