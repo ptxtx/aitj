@@ -36,6 +36,11 @@ public class SystemPromptConfig {
             var timeoutMs = chatConfig.getTimeoutMs();
 
             var config = nacosConfigManager.getConfigService().getConfig(dataId, group, timeoutMs);
+
+            if (config == null || config.isBlank()) {
+                log.error("系统提示词为空，dataId={}, group={}", dataId, group);
+                throw new IllegalStateException("系统提示词未读取到");
+            }
             target.set(config);
             log.info("读取{}成功，内容为：{}", target, config);
 

@@ -26,4 +26,10 @@ public class ChatController {
 
     }
 
+    //停止生成
+    @PostMapping("/stop")
+    public void stop(@RequestParam("sessionId") String sessionId) {
+        this.chatService.stop(sessionId);
+    }
+
 }
