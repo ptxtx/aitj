@@ -1,9 +1,15 @@
 package com.tianji.aigc.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.collection.CollStreamUtil;
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.stream.StreamUtil;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.RandomUtil;
+import cn.hutool.core.util.StrUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.tianji.aigc.config.SessionProperties;
 import com.tianji.aigc.entity.ChatSession;
@@ -12,6 +18,7 @@ import com.tianji.aigc.mapper.ChatSessionMapper;
 import com.tianji.aigc.memory.MyAssistantMessage;
 import com.tianji.aigc.service.ChatService;
 import com.tianji.aigc.service.ChatSessionService;
+import com.tianji.aigc.vo.ChatSessionVO;
 import com.tianji.aigc.vo.MessageVO;
 import com.tianji.aigc.vo.SessionVO;
 import com.tianji.common.utils.UserContext;
@@ -20,9 +27,14 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.MessageType;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -79,5 +91,117 @@ public class ChatSessionServiceImpl extends ServiceImpl<ChatSessionMapper, ChatS
                         }
                 )
                 .toList();
+    }
+
+    @Async //异步更新数据
+    @Override
+    public void update(String sessionId, String title, Long userId) {
+        List<ChatSession> chatSessionList = super.lambdaQuery()
+                .eq(ChatSession::getSessionId, sessionId)
+                .eq(ChatSession::getUserId, userId)
+                .list();
+        if (CollUtil.isEmpty(chatSessionList)) {
+            return;
+        }
+
+        //获取第一个会话对象数据
+        ChatSession chatSession = chatSessionList.get(0);
+        if(StrUtil.isEmpty(chatSession.getTitle())&&StrUtil.isNotEmpty(title)){
+            //如果标题长度过大，则截取字符
+            chatSession.setTitle(StrUtil.sub(title, 0, 100));
+        }
+        chatSession.setUpdateTime(LocalDateTime.now());
+
+        updateById(chatSession);
+
+    }
+
+    @Override
+    public Map<String, List<ChatSessionVO>> queryHistorySession() {
+        Long userId = UserContext.getUser();
+        List<ChatSession> chatSessionList = super.lambdaQuery()
+                .eq(ChatSession::getUserId, userId)
+                .isNotNull(ChatSession::getTitle)
+                .orderByDesc(ChatSession::getUpdateTime)
+                .last("limit 30")
+                .list();
+        if(CollUtil.isEmpty(chatSessionList)){
+            return Map.of();
+        }
+
+        List<ChatSessionVO> chatSessionVOList = CollStreamUtil.toList(chatSessionList, chatSession -> ChatSessionVO
+                .builder()
+                .sessionId(chatSession.getSessionId())
+                .title(chatSession.getTitle())
+                .updateTime(chatSession.getUpdateTime())
+                .build()
+        );
+        final var TODAY = "当天";
+        final var LAST_30_DAYS = "最近30天";
+        final var LAST_YEAR = "最近1年";
+        final var MORE_THAN_YEAR = "1年以上";
+
+        LocalDate now = LocalDateTime.now().toLocalDate();
+
+
+        return CollStreamUtil.groupByKey(chatSessionVOList, chatSessionVO -> {
+            long days = Math.abs(ChronoUnit.DAYS.between(now, chatSessionVO.getUpdateTime()));
+            if(days==0){
+                return TODAY;
+            }else if(days<=30){
+                return LAST_30_DAYS;
+            }else if(days<=365){
+                return LAST_YEAR;
+            }else{
+                return MORE_THAN_YEAR;
+            }
+        });
+    }
+
+    @Override
+    public void deleteHistorySession(String sessionId) {
+        Long userId = UserContext.getUser();
+        LambdaQueryWrapper<ChatSession> query = Wrappers.<ChatSession>lambdaQuery()
+                .eq(ChatSession::getSessionId, sessionId)
+                .eq(ChatSession::getUserId, userId);
+        super.remove(query);
+
+        //获取对话id
+        String conversationId = ChatService.getConversationId(sessionId);
+        this.chatMemory.clear(conversationId);
+    }
+
+    @Override
+    public void updateTitle(String sessionId, String title) {
+        Long userId = UserContext.getUser();
+        lambdaUpdate()
+                .eq(ChatSession::getSessionId, sessionId)
+                .eq(ChatSession::getUserId, userId)
+                .set(ChatSession::getTitle, title)
+                .update();
+    }
+
+    @Override
+    public boolean needsTitle(String sessionId, Long userId) {
+        ChatSession session = lambdaQuery()
+                .eq(ChatSession::getSessionId, sessionId)
+                .eq(ChatSession::getUserId, userId)
+                .one();
+
+        return session != null && StrUtil.isBlank(session.getTitle());
+    }
+
+    @Override
+    public void initTitle(String sessionId, String title, Long userId) {
+        lambdaUpdate()
+                .eq(ChatSession::getSessionId, sessionId)
+                .eq(ChatSession::getUserId, userId)
+                .and(wrapper -> wrapper
+                        .isNull(ChatSession::getTitle)
+                        .or()
+                        .eq(ChatSession::getTitle, ""))
+                .set(ChatSession::getTitle, StrUtil.sub(title, 0, 20))
+                .set(ChatSession::getUpdateTime, LocalDateTime.now())
+                .update();
     }
 }

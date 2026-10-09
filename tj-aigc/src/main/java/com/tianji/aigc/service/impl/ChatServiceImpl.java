@@ -3,11 +3,14 @@ package com.tianji.aigc.service.impl;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.ObjectUtil;
+import cn.hutool.core.util.StrUtil;
 import com.tianji.aigc.config.SystemPromptConfig;
 import com.tianji.aigc.config.ToolResultHolder;
 import com.tianji.aigc.constants.Constant;
 import com.tianji.aigc.enums.ChatEventTypeEnum;
 import com.tianji.aigc.service.ChatService;
+import com.tianji.aigc.service.ChatSessionService;
+import com.tianji.aigc.service.ChatTitleService;
 import com.tianji.aigc.vo.ChatEventVO;
 import com.tianji.common.utils.UserContext;
 import lombok.RequiredArgsConstructor;
@@ -39,9 +42,8 @@ public class ChatServiceImpl implements ChatService {
 
     private static final String GENERATE_STATUS_KEY ="GENERATE_STATUS";
     private final VectorStore vectorStore;
-
-
-
+    private final ChatSessionService chatSessionService;
+    private final ChatTitleService chatTitleService;
 
     @Override
     public Flux<ChatEventVO> chat(String question, String sessionId) {
@@ -57,6 +59,13 @@ public class ChatServiceImpl implements ChatService {
                         .topK(6)
                         .build())
                 .build();
+
+        //更新会话标题
+        //this.chatSessionService.update(sessionId,question,userId);
+        boolean needsTitle = chatSessionService.needsTitle(sessionId, userId);
+        StringBuilder assistantAnswer = new StringBuilder();
+// 只更新会话时间，不再把问题作为标题
+        chatSessionService.update(sessionId, null, userId);
         return this.chatClient.prompt()
                 .system(promptSystem -> promptSystem
                         .text(this.systemPromptConfig.getChatSystemMessage().get()) // 设置系统提示语
@@ -77,6 +86,10 @@ public class ChatServiceImpl implements ChatService {
                     // 获取大模型的输出的内容
                     String text = chatResponse.getResult().getOutput().getText();
 
+                    if (StrUtil.isNotEmpty(text)) {
+                        assistantAnswer.append(text);
+                    }
+
                     //获取到消息id
                     String messageId = chatResponse.getMetadata().getId();
                     //将消息id与请求id关联
@@ -86,6 +99,15 @@ public class ChatServiceImpl implements ChatService {
                             .eventData(text)
                             .eventType(ChatEventTypeEnum.DATA.getValue())
                             .build();
+                })
+                .doOnComplete(() -> {
+                    if (needsTitle) {
+                        String title = chatTitleService.generateTitle(
+                                question,
+                                assistantAnswer.toString()
+                        );
+                        chatSessionService.initTitle(sessionId, title, userId);
+                    }
                 })
                 .concatWith(Flux.defer(()->{
             Map<String, Object> result = ToolResultHolder.get(requestId);
