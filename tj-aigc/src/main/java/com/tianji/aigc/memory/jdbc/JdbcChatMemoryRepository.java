@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.tianji.aigc.entity.ChatRecord;
 import com.tianji.aigc.memory.MessageUtil;
+import com.tianji.aigc.memory.MyChatMemoryRepository;
 import com.tianji.aigc.service.ChatRecordService;
 import jakarta.annotation.Resource;
 import org.springframework.ai.chat.memory.ChatMemoryRepository;
@@ -13,7 +14,7 @@ import org.springframework.ai.chat.messages.Message;
 
 import java.util.List;
 
-public class JdbcChatMemoryRepository implements ChatMemoryRepository {
+public class JdbcChatMemoryRepository implements ChatMemoryRepository, MyChatMemoryRepository {
     @Resource
     private ChatRecordService chatRecordService;
 
@@ -55,5 +56,27 @@ public class JdbcChatMemoryRepository implements ChatMemoryRepository {
                 .orderByAsc(ChatRecord::getCreateTime)
                 .list();
         return CollStreamUtil.toList(chatRecordList, chatRecord -> MessageUtil.toMessage(String.valueOf(chatRecord.getData())));
+    }
+
+    @Override
+    public void optimization(String conversationId) {
+        if (StrUtil.isBlank(conversationId)) {
+            return;
+        }
+
+        List<ChatRecord> lastRecords = chatRecordService.lambdaQuery()
+                .select(ChatRecord::getId)
+                .eq(ChatRecord::getConversationId, conversationId)
+                .orderByDesc(ChatRecord::getId)
+                .last("LIMIT 2")
+                .list();
+
+        if (lastRecords.size() == 2) {
+            chatRecordService.removeByIds(
+                    lastRecords.stream()
+                            .map(ChatRecord::getId)
+                            .toList()
+            );
+        }
     }
 }

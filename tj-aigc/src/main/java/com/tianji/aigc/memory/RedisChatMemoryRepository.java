@@ -13,7 +13,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import java.util.List;
 import java.util.Set;
 
-public class RedisChatMemoryRepository implements ChatMemoryRepository {
+public class RedisChatMemoryRepository implements ChatMemoryRepository,MyChatMemoryRepository {
     // 默认redis中key的前缀
     public static final String DEFAULT_PREFIX = "CHAT:";
 
@@ -71,5 +71,12 @@ public class RedisChatMemoryRepository implements ChatMemoryRepository {
     }
     private String getKey(String conversationId) {
         return prefix + conversationId;
+    }
+
+    @Override
+    public void optimization(String conversationId) {
+        var redisKey=this.getKey(conversationId);
+        BoundListOperations<String, String> listOps = this.stringRedisTemplate.boundListOps(redisKey);
+        listOps.rightPop(2);
     }
 }

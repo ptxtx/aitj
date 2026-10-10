@@ -21,6 +21,7 @@ import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.redis.core.BoundHashOperations;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -29,9 +30,11 @@ import reactor.core.publisher.Flux;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+//增强型智能体实现
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@ConditionalOnProperty(prefix = "tj.ai",name = "chat-type",havingValue = "ENHANCE")
 public class ChatServiceImpl implements ChatService {
 
     private final ChatClient chatClient;
