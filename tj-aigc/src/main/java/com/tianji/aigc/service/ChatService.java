@@ -19,4 +19,6 @@ public interface ChatService {
     static String getConversationId(String sessionId) {
         return UserContext.getUser() + "_" + sessionId;
     }
+
+    String chatText(String question);
 }

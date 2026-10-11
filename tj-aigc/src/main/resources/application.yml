@@ -42,7 +42,9 @@ tj:
           data-id: consult-agent-system-message.txt
         knowledge-agent:
           data-id: knowledge-agent-system-message.txt
-    chat-type: ROUTE
+        text:
+          data-id: text-system-chat-message.txt
+    chat-type: ENHANCE
     memory:
       max: 100 #存储最大的聊天记录数
       type: redis

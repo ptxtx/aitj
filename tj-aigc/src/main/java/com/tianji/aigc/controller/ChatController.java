@@ -4,6 +4,7 @@ package com.tianji.aigc.controller;
 import com.tianji.aigc.dto.ChatDTO;
 import com.tianji.aigc.service.ChatService;
 import com.tianji.aigc.vo.ChatEventVO;
+import com.tianji.aigc.vo.TemplateVO;
 import com.tianji.common.annotations.NoWrapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,7 +20,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ChatController {
     private final ChatService chatService;
-    @NoWrapper//响应的结果不包装
+
+    private static final TemplateVO TEMPLATE_VO = new TemplateVO();    @NoWrapper//响应的结果不包装
     @PostMapping(produces = MediaType.TEXT_EVENT_STREAM_VALUE)//表示返回的是流式数据
     public Flux<ChatEventVO> chat(@RequestBody ChatDTO chatDTO){//因为是流式输出，返回FLux
         return chatService.chat(chatDTO.getQuestion(),chatDTO.getSessionId());
@@ -30,6 +32,15 @@ public class ChatController {
     @PostMapping("/stop")
     public void stop(@RequestParam("sessionId") String sessionId) {
         this.chatService.stop(sessionId);
+    }
+
+    @PostMapping("/text")
+    public String chatText(@RequestBody String question) {
+        return this.chatService.chatText(question);
+    }
+    @GetMapping("/templates")
+    public TemplateVO getTemplates() {
+        return TEMPLATE_VO;
     }
 
 }

@@ -144,4 +144,12 @@ public class ChatServiceImpl implements ChatService {
 
 
     }
+
+    @Override
+    public String chatText(String question) {
+        return chatClient.prompt()
+                .system(this.systemPromptConfig.getTextSystemMessage().get())
+                .user(question)
+                .call().content();
+    }
 }

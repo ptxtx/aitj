@@ -1,5 +1,6 @@
 package com.tianji; // 注意：包不要写错了
 
+import com.alibaba.cloud.ai.autoconfigure.dashscope.DashScopeChatAutoConfiguration;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -12,7 +13,10 @@ import java.net.UnknownHostException;
 
 @Slf4j
 @EnableAsync
-@SpringBootApplication
+@SpringBootApplication(excludeName = {
+        "com.alibaba.cloud.ai.autoconfigure.dashscope.DashScopeChatAutoConfiguration",
+        "com.alibaba.cloud.ai.autoconfigure.dashscope.DashScopeAgentAutoConfiguration"
+})
 public class AIGCApplication {
 
     public static void main(String[] args) throws UnknownHostException {

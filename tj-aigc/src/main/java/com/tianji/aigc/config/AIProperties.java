@@ -19,6 +19,7 @@ public class AIProperties {
         private Chat buyAgent;//购买智能体系统提示词
         private Chat consultAgent; // 咨询智能体系统提示词
         private Chat knowledgeAgent; // 知识讲解智能体系统提示词
+        private Chat text; // 文本智能体系统提示词
 
         @Data
         public static class Chat {

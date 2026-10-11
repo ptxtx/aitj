@@ -54,4 +54,9 @@ public class AgentServiceImpl implements ChatService {
 
 
     }
+
+    @Override
+    public String chatText(String question) {
+        return "";
+    }
 }
