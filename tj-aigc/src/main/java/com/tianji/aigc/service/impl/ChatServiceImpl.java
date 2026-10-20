@@ -58,8 +58,8 @@ public class ChatServiceImpl implements ChatService {
         //定义RAG增强顾问
         QuestionAnswerAdvisor qaAdvisor = QuestionAnswerAdvisor.builder(vectorStore)
                 .searchRequest(SearchRequest.builder()
-                        .similarityThreshold(0.6d)
-                        .topK(6)
+                        .similarityThreshold(0.84d)
+                        .topK(3)
                         .build())
                 .build();
 
