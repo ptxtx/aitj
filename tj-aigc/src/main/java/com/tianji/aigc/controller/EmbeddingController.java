@@ -48,6 +48,22 @@ public class EmbeddingController {
         return this.vectorStore.similaritySearch(SearchRequest.builder().query(message).topK(5).build());
     }
 
+    // Local retrieval-evaluation endpoint; keep it behind the existing login interceptor.
+    @GetMapping("/search/eval")
+    public List<Document> searchForEvaluation(
+            @RequestParam("message") String message,
+            @RequestParam(defaultValue = "10") int topK,
+            @RequestParam(defaultValue = "0.0") double threshold) {
+        if (topK < 1 || topK > 20 || threshold < 0.0 || threshold > 1.0) {
+            throw new IllegalArgumentException("topK must be 1..20 and threshold must be 0..1");
+        }
+        return this.vectorStore.similaritySearch(SearchRequest.builder()
+                .query(message)
+                .topK(topK)
+                .similarityThreshold(threshold)
+                .build());
+    }
+
     @GetMapping("/search/all")
     public List<Document> searchAll() {
         // 搜索全部数据

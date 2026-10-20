@@ -3,6 +3,7 @@ package com.tianji.aigc.agent;
 import com.tianji.aigc.enums.AgentTypeEnum;
 import com.tianji.aigc.vo.ChatEventVO;
 import org.springframework.ai.chat.client.advisor.api.Advisor;
+import org.springframework.ai.tool.ToolCallback;
 import reactor.core.publisher.Flux;
 
 import java.util.List;
@@ -18,6 +19,7 @@ public interface Agent {
      * 表示空参数的预定义数组
      */
     Object[] EMPTY_OBJECTS = new Object[0];
+    ToolCallback[] EMPTY_TOOL_CALLBACKS = new ToolCallback[0];
 
     /**
      * 处理流式请求（如流式回答）
@@ -66,6 +68,16 @@ public interface Agent {
      */
     default Object[] tools() {
         return EMPTY_OBJECTS;
+    }
+
+    /**
+     * 获取当前智能体允许使用的 MCP 工具回调。
+     *
+     * <p>本地 @Tool 对象继续通过 {@link #tools()} 提供，远程 MCP 工具通过该方法提供，
+     * 从而避免把全部 MCP 工具注册为 ChatClient 的全局默认工具。</p>
+     */
+    default ToolCallback[] mcpTools() {
+        return EMPTY_TOOL_CALLBACKS;
     }
 
     /**

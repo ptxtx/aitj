@@ -85,23 +85,21 @@ public class ChatServiceImpl implements ChatService {
                 .doOnComplete(() -> hashOps.delete(sessionId))//正常结束时删除
                 .doOnError(throwable -> hashOps.delete(sessionId))//异常结束时删除
                 .takeWhile(chatResponse -> hashOps.get(sessionId)!=null)//后续生成的条件，若为true，继续生成，反之。
-                .map(chatResponse -> {
-                    // 获取大模型的输出的内容
+                .<ChatEventVO>handle((chatResponse, sink) -> {
                     String text = chatResponse.getResult().getOutput().getText();
+
+                    String messageId = chatResponse.getMetadata().getId();
+                    if (StrUtil.isNotBlank(messageId)) {
+                        ToolResultHolder.put(messageId, Constant.REQUEST_ID, requestId);
+                    }
 
                     if (StrUtil.isNotEmpty(text)) {
                         assistantAnswer.append(text);
+                        sink.next(ChatEventVO.builder()
+                                .eventType(ChatEventTypeEnum.DATA.getValue())
+                                .eventData(text)
+                                .build());
                     }
-
-                    //获取到消息id
-                    String messageId = chatResponse.getMetadata().getId();
-                    //将消息id与请求id关联
-                    ToolResultHolder.put(messageId,Constant.REQUEST_ID,requestId);
-                    // 封装响应对象
-                    return ChatEventVO.builder()
-                            .eventData(text)
-                            .eventType(ChatEventTypeEnum.DATA.getValue())
-                            .build();
                 })
                 .doOnComplete(() -> {
                     if (needsTitle) {

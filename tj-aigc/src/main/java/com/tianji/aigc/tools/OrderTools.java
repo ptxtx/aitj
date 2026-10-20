@@ -28,18 +28,22 @@ public class OrderTools {
     public PrePlaceOrder prePlaceOrder(@ToolParam(description = Constant.ToolParams.COURSE_IDS) List<Number> ids,
                                        ToolContext toolContext) {
         // 设置用户ID，用于身份验证，否在在Feign调用时会出现401错误
-        UserContext.setUser(Convert.toLong(toolContext.getContext().get(Constant.USER_ID)));
-        // 大模型传入的ids，可能是int类型，所以转化为long类型，再调用Feign
-        var orderConfirmVO = this.tradeClient.prePlaceOrder(CollStreamUtil.toList(ids, Number::longValue));
-
-        return Optional.ofNullable(orderConfirmVO)
-                .map(PrePlaceOrder::of)
-                .map(prePlaceOrder -> {
-                    var field = StrUtil.lowerFirst(prePlaceOrder.getClass().getSimpleName());
-                    var requestId = Convert.toStr(toolContext.getContext().get(Constant.REQUEST_ID));
-                    ToolResultHolder.put(requestId, field, prePlaceOrder);
-                    return prePlaceOrder;
-                })
-                .orElse(null);
+        Long userId = Convert.toLong(toolContext.getContext().get(Constant.USER_ID));
+        UserContext.setUser(userId);
+        try {
+            // 大模型传入的ids，可能是int类型，所以转化为long类型，再调用Feign
+            var orderConfirmVO = this.tradeClient.prePlaceOrder(CollStreamUtil.toList(ids, Number::longValue));
+            return Optional.ofNullable(orderConfirmVO)
+                    .map(PrePlaceOrder::of)
+                    .map(prePlaceOrder -> {
+                        var field = StrUtil.lowerFirst(prePlaceOrder.getClass().getSimpleName());
+                        var requestId = Convert.toStr(toolContext.getContext().get(Constant.REQUEST_ID));
+                        ToolResultHolder.put(requestId, field, prePlaceOrder);
+                        return prePlaceOrder;
+                    })
+                    .orElse(null);
+        } finally {
+            UserContext.removeUser();
+        }
     }
 }

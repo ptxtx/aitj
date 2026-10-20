@@ -1,0 +1,30 @@
+server:
+  port: ${TJ_MCP_SERVER_PORT:8095}
+
+spring:
+  application:
+    name: tj-mcp-server
+  main:
+    # MCP Server 使用 WebFlux SSE，不启动数据库、Redis、Nacos 和大模型组件。
+    web-application-type: reactive
+  ai:
+    mcp:
+      server:
+        enabled: true
+        stdio: false
+        name: tianji-learning-mcp-server
+        version: 1.0.0
+        type: SYNC
+        instructions: 仅提供天机学堂的只读学习规划与学习进度计算工具。
+        sse-endpoint: /sse
+        sse-message-endpoint: /mcp/message
+        request-timeout: 10s
+        capabilities:
+          tool: true
+          resource: false
+          prompt: false
+          completion: false
+
+logging:
+  level:
+    com.tianji.mcp: INFO
